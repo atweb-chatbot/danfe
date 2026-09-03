@@ -5,19 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DANFE</title>
 </head>
+
 <body>
 
-    <h1>Teste DANFE</h1>
+    <h1>DANFE</h1>
 
-    <p>Número da NF:</p>
-    <strong id="numero"></strong>
+    <p><strong>Número:</strong> <span id="numero"></span></p>
+    <p><strong>Série:</strong> <span id="serie"></span></p>
+    <p><strong>Data de emissão:</strong> <span id="dataEmissao"></span></p>
 
-    <p>Valor:</p>
-    <strong id="valor"></strong>
+    <hr>
+
+    <p><strong>Emitente:</strong> <span id="emitente"></span></p>
+    <p><strong>CNPJ:</strong> <span id="cnpjEmitente"></span></p>
+
+    <hr>
+
+    <p><strong>Destinatário:</strong> <span id="destinatario"></span></p>
+    <p><strong>CPF/CNPJ:</strong> <span id="documentoDestinatario"></span></p>
+
+    <hr>
+
+    <p><strong>Valor total:</strong> R$ <span id="valor"></span></p>
+
+    <p><strong>Chave de acesso:</strong></p>
+    <p id="chave"></p>
 
     <script>
+
         function base64UrlDecode(valor) {
-            valor = valor.replace(/-/g, "+").replace(/_/g, "/");
+
+            valor = valor
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
 
             while (valor.length % 4) {
                 valor += "=";
@@ -26,24 +46,59 @@
             return decodeURIComponent(
                 Array.prototype.map.call(
                     atob(valor),
-                    c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                    c =>
+                        "%" +
+                        ("00" + c.charCodeAt(0).toString(16)).slice(-2)
                 ).join("")
             );
         }
 
         try {
-            const payload = window.location.hash.substring(1);
 
-            const json = base64UrlDecode(payload);
+            const payload =
+                window.location.hash.substring(1);
 
-            const dados = JSON.parse(json);
+            const json =
+                base64UrlDecode(payload);
 
-            document.getElementById("numero").textContent = dados.numero;
-            document.getElementById("valor").textContent = "R$ " + dados.valor;
+            const dados =
+                JSON.parse(json);
+
+            document.getElementById("numero")
+                .textContent = dados.numero;
+
+            document.getElementById("serie")
+                .textContent = dados.serie;
+
+            document.getElementById("dataEmissao")
+                .textContent = dados.dataEmissao;
+
+            document.getElementById("emitente")
+                .textContent = dados.emitente;
+
+            document.getElementById("cnpjEmitente")
+                .textContent = dados.cnpjEmitente;
+
+            document.getElementById("destinatario")
+                .textContent = dados.destinatario;
+
+            document.getElementById("documentoDestinatario")
+                .textContent = dados.documentoDestinatario;
+
+            document.getElementById("valor")
+                .textContent = dados.valor;
+
+            document.getElementById("chave")
+                .textContent = dados.chave;
+
         }
         catch (erro) {
-            document.body.innerHTML += "<p>Erro ao ler os dados.</p>";
+
+            document.body.innerHTML +=
+                "<p>Erro ao ler os dados da DANFE.</p>";
+
         }
+
     </script>
 
 </body>
