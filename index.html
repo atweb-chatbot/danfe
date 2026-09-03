@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta
@@ -181,11 +183,20 @@ button {
     cursor: pointer;
 }
 
+.carregando {
+    max-width: 700px;
+    margin: 50px auto;
+    padding: 20px;
+    background: #fff;
+    text-align: center;
+    font-size: 14px;
+}
+
 .erro {
     max-width: 700px;
     margin: 50px auto;
     padding: 20px;
-    background: white;
+    background: #fff;
     border: 1px solid #ccc;
     font-size: 14px;
 }
@@ -195,7 +206,7 @@ button {
     body {
         margin: 0;
         padding: 0;
-        background: white;
+        background: #fff;
     }
 
     .danfe {
@@ -217,6 +228,7 @@ button {
         width: 100%;
         overflow-x: auto;
     }
+
 }
 
 </style>
@@ -225,15 +237,24 @@ button {
 
 <body>
 
-<div id="conteudo"></div>
+
+<div id="conteudo">
+
+    <div class="carregando">
+        Carregando DANFE...
+    </div>
+
+</div>
+
 
 <script>
 
+
 // ================================================================
-// BASE64 URL SAFE
+// BASE64 URL-SAFE -> BYTES
 // ================================================================
 
-function base64UrlDecode(valor) {
+function base64UrlParaBytes(valor) {
 
     valor = valor
         .replace(/-/g, "+")
@@ -243,33 +264,104 @@ function base64UrlDecode(valor) {
         valor += "=";
     }
 
-    const binario = atob(valor);
+    const binario =
+        atob(valor);
 
-    const bytes = new Uint8Array(binario.length);
+    const bytes =
+        new Uint8Array(
+            binario.length
+        );
 
-    for (let i = 0; i < binario.length; i++) {
-        bytes[i] = binario.charCodeAt(i);
+    for (
+        let i = 0;
+        i < binario.length;
+        i++
+    ) {
+
+        bytes[i] =
+            binario.charCodeAt(i);
+
     }
 
-    return new TextDecoder("utf-8").decode(bytes);
+    return bytes;
 }
 
 
 // ================================================================
-// SEGURANÇA HTML
+// DESCOMPACTA GZIP
+// ================================================================
+
+async function descompactarPayload(payload) {
+
+    const bytes =
+        base64UrlParaBytes(payload);
+
+    if (
+        typeof DecompressionStream ===
+        "undefined"
+    ) {
+
+        throw new Error(
+            "Este navegador não suporta descompactação GZip."
+        );
+
+    }
+
+    const stream =
+        new Blob([bytes])
+            .stream()
+            .pipeThrough(
+                new DecompressionStream(
+                    "gzip"
+                )
+            );
+
+    return await new Response(
+        stream
+    ).text();
+}
+
+
+// ================================================================
+// PROTEÇÃO HTML
 // ================================================================
 
 function h(valor) {
 
-    if (valor === null || valor === undefined)
+    if (
+        valor === null ||
+        valor === undefined
+    ) {
         return "";
+    }
 
     return String(valor)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
 }
 
 
@@ -287,12 +379,17 @@ function moeda(valor) {
         return "";
     }
 
-    const numero = Number(
-        String(valor).replace(",", ".")
-    );
+    const numero =
+        Number(
+            String(valor)
+                .replace(",", ".")
+        );
 
-    if (Number.isNaN(numero))
+    if (
+        Number.isNaN(numero)
+    ) {
         return h(valor);
+    }
 
     return numero.toLocaleString(
         "pt-BR",
@@ -301,6 +398,7 @@ function moeda(valor) {
             maximumFractionDigits: 2
         }
     );
+
 }
 
 
@@ -310,15 +408,22 @@ function moeda(valor) {
 
 function dataFormatada(valor) {
 
-    if (!valor)
+    if (!valor) {
         return "";
+    }
 
     try {
 
-        const data = new Date(valor);
+        const data =
+            new Date(valor);
 
-        if (Number.isNaN(data.getTime()))
+        if (
+            Number.isNaN(
+                data.getTime()
+            )
+        ) {
             return h(valor);
+        }
 
         return data.toLocaleString(
             "pt-BR",
@@ -333,40 +438,55 @@ function dataFormatada(valor) {
 
     }
     catch {
+
         return h(valor);
+
     }
+
 }
 
 
 // ================================================================
-// DOCUMENTOS
+// CPF / CNPJ
 // ================================================================
 
 function formatarDocumento(valor) {
 
-    if (!valor)
+    if (!valor) {
         return "";
+    }
 
     const numero =
-        String(valor).replace(/\D/g, "");
+        String(valor)
+            .replace(
+                /\D/g,
+                ""
+            );
 
-    if (numero.length === 11) {
+    if (
+        numero.length === 11
+    ) {
 
         return numero.replace(
             /(\d{3})(\d{3})(\d{3})(\d{2})/,
             "$1.$2.$3-$4"
         );
+
     }
 
-    if (numero.length === 14) {
+    if (
+        numero.length === 14
+    ) {
 
         return numero.replace(
             /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
             "$1.$2.$3/$4-$5"
         );
+
     }
 
     return h(valor);
+
 }
 
 
@@ -376,19 +496,34 @@ function formatarDocumento(valor) {
 
 function formatarCep(valor) {
 
-    if (!valor)
+    if (!valor) {
         return "";
+    }
 
     const numero =
-        String(valor).replace(/\D/g, "");
+        String(valor)
+            .replace(
+                /\D/g,
+                ""
+            );
 
-    if (numero.length === 8) {
-        return numero.substring(0, 5) +
+    if (
+        numero.length === 8
+    ) {
+
+        return (
+            numero.substring(
+                0,
+                5
+            ) +
             "-" +
-            numero.substring(5);
+            numero.substring(5)
+        );
+
     }
 
     return h(valor);
+
 }
 
 
@@ -398,13 +533,28 @@ function formatarCep(valor) {
 
 function formatarChave(chave) {
 
-    if (!chave)
+    if (!chave) {
         return "";
+    }
 
-    return String(chave)
-        .replace(/\s/g, "")
-        .match(/.{1,4}/g)
-        ?.join(" ") || "";
+    const limpa =
+        String(chave)
+            .replace(
+                /\s/g,
+                ""
+            );
+
+    const grupos =
+        limpa.match(
+            /.{1,4}/g
+        );
+
+    if (!grupos) {
+        return limpa;
+    }
+
+    return grupos.join(" ");
+
 }
 
 
@@ -412,13 +562,18 @@ function formatarChave(chave) {
 // CAMPO
 // ================================================================
 
-function campo(titulo, valor, largura) {
+function campo(
+    titulo,
+    valor,
+    largura
+) {
 
     return `
         <div
             class="cell"
             style="width:${largura}"
         >
+
             <span class="label">
                 ${h(titulo)}
             </span>
@@ -426,16 +581,22 @@ function campo(titulo, valor, largura) {
             <span class="valor">
                 ${valor || ""}
             </span>
+
         </div>
     `;
+
 }
 
 
 // ================================================================
-// CAMPO DE DINHEIRO
+// CAMPO DINHEIRO
 // ================================================================
 
-function dinheiro(titulo, valor, largura) {
+function dinheiro(
+    titulo,
+    valor,
+    largura
+) {
 
     let texto = "";
 
@@ -444,7 +605,11 @@ function dinheiro(titulo, valor, largura) {
         valor !== undefined &&
         valor !== ""
     ) {
-        texto = "R$ " + moeda(valor);
+
+        texto =
+            "R$ " +
+            moeda(valor);
+
     }
 
     return campo(
@@ -452,6 +617,7 @@ function dinheiro(titulo, valor, largura) {
         texto,
         largura
     );
+
 }
 
 
@@ -461,11 +627,16 @@ function dinheiro(titulo, valor, largura) {
 
 function gerarCodigoBarras(chave) {
 
-    if (!chave)
+    if (!chave) {
         return "";
+    }
 
     chave =
-        String(chave).replace(/\D/g, "");
+        String(chave)
+            .replace(
+                /\D/g,
+                ""
+            );
 
     if (
         chave.length === 0 ||
@@ -475,6 +646,7 @@ function gerarCodigoBarras(chave) {
     }
 
     const patterns = [
+
         "212222","222122","222221","121223","121322",
         "131222","122213","122312","132212","221213",
         "221312","231212","112232","122132","122231",
@@ -497,12 +669,15 @@ function gerarCodigoBarras(chave) {
         "114113","114311","411113","411311","113141",
         "114131","311141","411131",
         "211412","211214","211232","2331112"
+
     ];
+
 
     const codigos = [105];
 
     let checksum = 105;
     let posicao = 1;
+
 
     for (
         let i = 0;
@@ -512,234 +687,450 @@ function gerarCodigoBarras(chave) {
 
         const valor =
             parseInt(
-                chave.substring(i, i + 2),
+                chave.substring(
+                    i,
+                    i + 2
+                ),
                 10
             );
 
-        codigos.push(valor);
+        codigos.push(
+            valor
+        );
 
         checksum +=
-            valor * posicao;
+            valor *
+            posicao;
 
         posicao++;
+
     }
+
 
     checksum =
         checksum % 103;
 
-    codigos.push(checksum);
-    codigos.push(106);
+
+    codigos.push(
+        checksum
+    );
+
+    codigos.push(
+        106
+    );
+
 
     let modulo = 0;
 
-    codigos.forEach(codigo => {
 
-        const pattern =
-            patterns[codigo];
+    codigos.forEach(
+        codigo =>
+        {
 
-        for (const c of pattern) {
-            modulo += Number(c);
+            const pattern =
+                patterns[codigo];
+
+            for (
+                const c of pattern
+            ) {
+
+                modulo +=
+                    Number(c);
+
+            }
+
         }
-    });
+    );
+
 
     const margem = 10;
-    const largura = modulo + margem * 2;
+
+    const largura =
+        modulo +
+        margem * 2;
+
 
     let svg = `
+
         <svg
+
             class="barcode"
-            viewBox="0 0 ${largura} 50"
+
+            viewBox="
+                0 0 ${largura} 50
+            "
+
             preserveAspectRatio="none"
-            xmlns="http://www.w3.org/2000/svg"
+
+            xmlns="
+                http://www.w3.org/2000/svg
+            "
+
         >
+
     `;
+
 
     let x = margem;
 
-    codigos.forEach(codigo => {
 
-        const pattern =
-            patterns[codigo];
+    codigos.forEach(
+        codigo =>
+        {
 
-        let barra = true;
+            const pattern =
+                patterns[codigo];
 
-        for (const c of pattern) {
+            let barra = true;
 
-            const w = Number(c);
 
-            if (barra) {
+            for (
+                const c of pattern
+            ) {
 
-                svg += `
-                    <rect
-                        x="${x}"
-                        y="0"
-                        width="${w}"
-                        height="45"
-                        fill="black"
-                    />
-                `;
+                const w =
+                    Number(c);
+
+
+                if (barra) {
+
+                    svg += `
+
+                        <rect
+
+                            x="${x}"
+
+                            y="0"
+
+                            width="${w}"
+
+                            height="45"
+
+                            fill="black"
+
+                        />
+
+                    `;
+
+                }
+
+
+                x += w;
+
+                barra =
+                    !barra;
+
             }
 
-            x += w;
-            barra = !barra;
         }
-    });
+    );
 
-    svg += "</svg>";
+
+    svg +=
+        "</svg>";
+
 
     return svg;
+
 }
 
 
 // ================================================================
-// MONTA DANFE
+// MONTA A DANFE
 // ================================================================
 
 function montarDanfe(d) {
 
-    const ide = d.ide || {};
-    const emit = d.emit || {};
-    const dest = d.dest || {};
-    const total = d.total || {};
-    const transp = d.transp || {};
-    const volume = d.volume || {};
-    const adicionais = d.adicionais || {};
-    const produtos = d.produtos || [];
+
+    const ide =
+        d.ide || {};
+
+
+    const emit =
+        d.emit || {};
+
+
+    const dest =
+        d.dest || {};
+
+
+    const total =
+        d.total || {};
+
+
+    const transp =
+        d.transp || {};
+
+
+    const volume =
+        d.volume || {};
+
+
+    const adicionais =
+        d.adicionais || {};
+
+
+    const produtos =
+        d.produtos || [];
+
+
+    // ============================================================
+    // PRODUTOS
+    // ============================================================
 
     let produtosHtml = "";
 
-    produtos.forEach(prod => {
 
-        produtosHtml += `
-            <tr>
-                <td>${h(prod.codigo)}</td>
-                <td>${h(prod.descricao)}</td>
-                <td class="center">${h(prod.ncm)}</td>
-                <td class="center">${h(prod.cst)}</td>
-                <td class="center">${h(prod.cfop)}</td>
-                <td class="center">${h(prod.unidade)}</td>
-                <td class="right">${h(prod.quantidade)}</td>
-                <td class="right">${moeda(prod.valorUnitario)}</td>
-                <td class="right">${moeda(prod.valorTotal)}</td>
-                <td class="right">${moeda(prod.baseICMS)}</td>
-                <td class="right">${moeda(prod.valorICMS)}</td>
-                <td class="right">${moeda(prod.valorIPI)}</td>
-                <td class="right">${h(prod.aliquotaICMS)}</td>
-            </tr>
-        `;
-    });
+    produtos.forEach(
+        prod =>
+        {
+
+            produtosHtml += `
+
+                <tr>
+
+                    <td>
+                        ${h(prod.codigo)}
+                    </td>
+
+                    <td>
+                        ${h(prod.descricao)}
+                    </td>
+
+                    <td class="center">
+                        ${h(prod.ncm)}
+                    </td>
+
+                    <td class="center">
+                        ${h(prod.cst)}
+                    </td>
+
+                    <td class="center">
+                        ${h(prod.cfop)}
+                    </td>
+
+                    <td class="center">
+                        ${h(prod.unidade)}
+                    </td>
+
+                    <td class="right">
+                        ${h(prod.quantidade)}
+                    </td>
+
+                    <td class="right">
+                        ${moeda(prod.valorUnitario)}
+                    </td>
+
+                    <td class="right">
+                        ${moeda(prod.valorTotal)}
+                    </td>
+
+                    <td class="right">
+                        ${moeda(prod.baseICMS)}
+                    </td>
+
+                    <td class="right">
+                        ${moeda(prod.valorICMS)}
+                    </td>
+
+                    <td class="right">
+                        ${moeda(prod.valorIPI)}
+                    </td>
+
+                    <td class="right">
+                        ${h(prod.aliquotaICMS)}
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
 
 
-    const enderecoEmitente = [
-        emit.logradouro,
-        emit.numero
-    ]
-    .filter(Boolean)
-    .join(", ");
+    // ============================================================
+    // ENDEREÇO EMITENTE
+    // ============================================================
+
+    const enderecoEmitente =
+        [
+            emit.logradouro,
+            emit.numero
+        ]
+        .filter(Boolean)
+        .join(", ");
 
 
-    const cidadeEmitente = [
-        emit.municipio,
-        emit.uf
-    ]
-    .filter(Boolean)
-    .join(" / ");
+    const cidadeEmitente =
+        [
+            emit.municipio,
+            emit.uf
+        ]
+        .filter(Boolean)
+        .join(" / ");
 
 
-    let enderecoDestinatario = [
-        dest.logradouro,
-        dest.numero
-    ]
-    .filter(Boolean)
-    .join(", ");
+    // ============================================================
+    // ENDEREÇO DESTINATÁRIO
+    // ============================================================
 
-    if (dest.complemento) {
+    let enderecoDestinatario =
+        [
+            dest.logradouro,
+            dest.numero
+        ]
+        .filter(Boolean)
+        .join(", ");
+
+
+    if (
+        dest.complemento
+    ) {
 
         enderecoDestinatario +=
             " - " +
             dest.complemento;
+
     }
 
+
+    // ============================================================
+    // HTML
+    // ============================================================
 
     return `
 
     <div class="danfe">
 
-        <!-- CABEÇALHO -->
+
+        <!-- ====================================================
+             CABEÇALHO
+        ===================================================== -->
 
         <div class="box row">
 
+
             <div class="emitente">
 
+
                 <div class="emitenteNome">
+
                     ${h(emit.nome)}
+
                 </div>
 
+
                 ${h(enderecoEmitente)}
+
                 <br>
+
 
                 ${h(emit.bairro)}
+
                 <br>
+
 
                 ${h(cidadeEmitente)}
+
                 <br>
 
+
                 CEP ${formatarCep(emit.cep)}
+
 
             </div>
 
 
             <div class="danfeCentro">
 
+
                 <div class="danfeTitulo">
+
                     DANFE
+
                 </div>
+
 
                 <div class="danfeDescricao">
+
                     DOCUMENTO AUXILIAR DA
+
                     <br>
+
                     NOTA FISCAL ELETRÔNICA
+
                 </div>
 
+
                 <br>
+
 
                 0 - ENTRADA
+
                 <br>
 
+
                 1 - SAÍDA &nbsp;
+
+
                 <b>
+
                     ${h(ide.tipoNF)}
+
                 </b>
 
+
                 <div class="numero">
+
                     Nº ${h(ide.numero)}
+
                 </div>
 
+
                 SÉRIE ${h(ide.serie)}
+
 
             </div>
 
 
             <div class="chaveArea">
 
+
                 ${gerarCodigoBarras(d.chave)}
 
+
                 <span class="label">
+
                     CHAVE DE ACESSO
+
                 </span>
 
+
                 <div class="chave">
-                    ${h(formatarChave(d.chave))}
+
+                    ${h(
+                        formatarChave(
+                            d.chave
+                        )
+                    )}
+
                 </div>
 
+
             </div>
+
 
         </div>
 
 
-        <!-- NATUREZA DA OPERAÇÃO -->
+        <!-- ====================================================
+             NATUREZA
+        ===================================================== -->
+
 
         <div class="box row">
+
 
             ${campo(
                 "Natureza da Operação",
@@ -747,10 +1138,12 @@ function montarDanfe(d) {
                 "100%"
             )}
 
+
         </div>
 
 
         <div class="box row">
+
 
             ${campo(
                 "Inscrição Estadual",
@@ -758,29 +1151,40 @@ function montarDanfe(d) {
                 "33%"
             )}
 
+
             ${campo(
                 "Inscrição Estadual Subst. Tributário",
                 h(emit.iest),
                 "33%"
             )}
 
+
             ${campo(
                 "CNPJ",
-                formatarDocumento(emit.cnpj),
+                formatarDocumento(
+                    emit.cnpj
+                ),
                 "34%"
             )}
+
 
         </div>
 
 
-        <!-- DESTINATÁRIO -->
+        <!-- ====================================================
+             DESTINATÁRIO
+        ===================================================== -->
+
 
         <div class="section">
+
             DESTINATÁRIO / REMETENTE
+
         </div>
 
 
         <div class="box row">
+
 
             ${campo(
                 "Nome / Razão Social",
@@ -788,28 +1192,39 @@ function montarDanfe(d) {
                 "55%"
             )}
 
+
             ${campo(
                 "CNPJ / CPF",
-                formatarDocumento(dest.documento),
+                formatarDocumento(
+                    dest.documento
+                ),
                 "25%"
             )}
 
+
             ${campo(
                 "Data da Emissão",
-                dataFormatada(ide.dataEmissao),
+                dataFormatada(
+                    ide.dataEmissao
+                ),
                 "20%"
             )}
+
 
         </div>
 
 
         <div class="box row">
 
+
             ${campo(
                 "Endereço",
-                h(enderecoDestinatario),
+                h(
+                    enderecoDestinatario
+                ),
                 "50%"
             )}
+
 
             ${campo(
                 "Bairro / Distrito",
@@ -817,16 +1232,21 @@ function montarDanfe(d) {
                 "25%"
             )}
 
+
             ${campo(
                 "CEP",
-                formatarCep(dest.cep),
+                formatarCep(
+                    dest.cep
+                ),
                 "25%"
             )}
+
 
         </div>
 
 
         <div class="box row">
+
 
             ${campo(
                 "Município",
@@ -834,11 +1254,13 @@ function montarDanfe(d) {
                 "35%"
             )}
 
+
             ${campo(
                 "Fone",
                 h(dest.fone),
                 "20%"
             )}
+
 
             ${campo(
                 "UF",
@@ -846,23 +1268,31 @@ function montarDanfe(d) {
                 "10%"
             )}
 
+
             ${campo(
                 "Inscrição Estadual",
                 h(dest.ie),
                 "35%"
             )}
 
+
         </div>
 
 
-        <!-- IMPOSTOS -->
+        <!-- ====================================================
+             IMPOSTOS
+        ===================================================== -->
+
 
         <div class="section">
+
             CÁLCULO DO IMPOSTO
+
         </div>
 
 
         <div class="box row">
+
 
             ${dinheiro(
                 "Base de Cálculo ICMS",
@@ -870,11 +1300,13 @@ function montarDanfe(d) {
                 "20%"
             )}
 
+
             ${dinheiro(
                 "Valor ICMS",
                 total.vICMS,
                 "20%"
             )}
+
 
             ${dinheiro(
                 "Base Cálculo ICMS ST",
@@ -882,11 +1314,13 @@ function montarDanfe(d) {
                 "20%"
             )}
 
+
             ${dinheiro(
                 "Valor ICMS ST",
                 total.vST,
                 "20%"
             )}
+
 
             ${dinheiro(
                 "Valor dos Produtos",
@@ -894,10 +1328,12 @@ function montarDanfe(d) {
                 "20%"
             )}
 
+
         </div>
 
 
         <div class="box row">
+
 
             ${dinheiro(
                 "Frete",
@@ -905,11 +1341,13 @@ function montarDanfe(d) {
                 "14%"
             )}
 
+
             ${dinheiro(
                 "Seguro",
                 total.vSeg,
                 "14%"
             )}
+
 
             ${dinheiro(
                 "Desconto",
@@ -917,11 +1355,13 @@ function montarDanfe(d) {
                 "14%"
             )}
 
+
             ${dinheiro(
                 "Outras Despesas",
                 total.vOutro,
                 "14%"
             )}
+
 
             ${dinheiro(
                 "IPI",
@@ -929,32 +1369,49 @@ function montarDanfe(d) {
                 "14%"
             )}
 
+
             <div
                 class="cell"
                 style="width:30%"
             >
 
+
                 <span class="label">
+
                     Valor Total da Nota
+
                 </span>
+
 
                 <span class="valorTotal">
-                    R$ ${moeda(total.vNF)}
+
+                    R$ ${moeda(
+                        total.vNF
+                    )}
+
                 </span>
 
+
             </div>
+
 
         </div>
 
 
-        <!-- TRANSPORTADOR -->
+        <!-- ====================================================
+             TRANSPORTADOR
+        ===================================================== -->
+
 
         <div class="section">
+
             TRANSPORTADOR / VOLUMES TRANSPORTADOS
+
         </div>
 
 
         <div class="box row">
+
 
             ${campo(
                 "Razão Social",
@@ -962,17 +1419,22 @@ function montarDanfe(d) {
                 "40%"
             )}
 
+
             ${campo(
                 "Frete por Conta",
                 h(transp.tipoFrete),
                 "20%"
             )}
 
+
             ${campo(
                 "CNPJ / CPF",
-                formatarDocumento(transp.documento),
+                formatarDocumento(
+                    transp.documento
+                ),
                 "25%"
             )}
+
 
             ${campo(
                 "UF",
@@ -980,10 +1442,12 @@ function montarDanfe(d) {
                 "15%"
             )}
 
+
         </div>
 
 
         <div class="box row">
+
 
             ${campo(
                 "Endereço",
@@ -991,11 +1455,13 @@ function montarDanfe(d) {
                 "40%"
             )}
 
+
             ${campo(
                 "Município",
                 h(transp.municipio),
                 "30%"
             )}
+
 
             ${campo(
                 "Inscrição Estadual",
@@ -1003,10 +1469,12 @@ function montarDanfe(d) {
                 "30%"
             )}
 
+
         </div>
 
 
         <div class="box row">
+
 
             ${campo(
                 "Quantidade",
@@ -1014,11 +1482,13 @@ function montarDanfe(d) {
                 "20%"
             )}
 
+
             ${campo(
                 "Espécie",
                 h(volume.especie),
                 "20%"
             )}
+
 
             ${campo(
                 "Marca",
@@ -1026,11 +1496,13 @@ function montarDanfe(d) {
                 "20%"
             )}
 
+
             ${campo(
                 "Peso Líquido",
                 h(volume.pesoLiquido),
                 "20%"
             )}
+
 
             ${campo(
                 "Peso Bruto",
@@ -1038,62 +1510,128 @@ function montarDanfe(d) {
                 "20%"
             )}
 
+
         </div>
 
 
-        <!-- PRODUTOS -->
+        <!-- ====================================================
+             PRODUTOS
+        ===================================================== -->
+
 
         <div class="section">
+
             DADOS DOS PRODUTOS / SERVIÇOS
+
         </div>
 
 
         <table>
 
+
             <thead>
+
 
                 <tr>
 
-                    <th>CÓDIGO</th>
+
+                    <th>
+                        CÓDIGO
+                    </th>
+
 
                     <th>
                         DESCRIÇÃO DO PRODUTO / SERVIÇO
                     </th>
 
-                    <th>NCM</th>
-                    <th>CST</th>
-                    <th>CFOP</th>
-                    <th>UN</th>
-                    <th>QTD.</th>
-                    <th>V. UNIT.</th>
-                    <th>V. TOTAL</th>
-                    <th>BC ICMS</th>
-                    <th>V. ICMS</th>
-                    <th>V. IPI</th>
 
                     <th>
-                        ALÍQ.<br>ICMS
+                        NCM
                     </th>
+
+
+                    <th>
+                        CST
+                    </th>
+
+
+                    <th>
+                        CFOP
+                    </th>
+
+
+                    <th>
+                        UN
+                    </th>
+
+
+                    <th>
+                        QTD.
+                    </th>
+
+
+                    <th>
+                        V. UNIT.
+                    </th>
+
+
+                    <th>
+                        V. TOTAL
+                    </th>
+
+
+                    <th>
+                        BC ICMS
+                    </th>
+
+
+                    <th>
+                        V. ICMS
+                    </th>
+
+
+                    <th>
+                        V. IPI
+                    </th>
+
+
+                    <th>
+                        ALÍQ.
+                        <br>
+                        ICMS
+                    </th>
+
 
                 </tr>
 
+
             </thead>
 
+
             <tbody>
+
                 ${produtosHtml}
+
             </tbody>
+
 
         </table>
 
 
-        <!-- DADOS ADICIONAIS -->
+        <!-- ====================================================
+             DADOS ADICIONAIS
+        ===================================================== -->
+
 
         <div class="section">
+
             DADOS ADICIONAIS
+
         </div>
 
 
         <div class="box row">
+
 
             <div
                 class="cell"
@@ -1103,11 +1641,18 @@ function montarDanfe(d) {
                 "
             >
 
+
                 <span class="label">
+
                     Informações Complementares
+
                 </span>
 
-                ${h(adicionais.complementares)}
+
+                ${h(
+                    adicionais.complementares
+                )}
+
 
             </div>
 
@@ -1120,95 +1665,212 @@ function montarDanfe(d) {
                 "
             >
 
+
                 <span class="label">
+
                     Reservado ao Fisco
+
                 </span>
 
-                ${h(adicionais.fisco)}
+
+                ${h(
+                    adicionais.fisco
+                )}
+
 
             </div>
 
+
         </div>
+
+
+        <!-- ====================================================
+             AVISO
+        ===================================================== -->
 
 
         <div class="aviso">
 
+
             <b>
+
                 ESPELHO DA NF-e PARA IMPRESSÃO
+
             </b>
 
+
             <br>
+
 
             Documento auxiliar gerado a partir
             dos dados disponíveis no XML.
 
+
         </div>
+
+
+        <!-- ====================================================
+             BOTÃO
+        ===================================================== -->
 
 
         <div class="naoImprimir">
 
-            <button onclick="window.print()">
+
+            <button
+                onclick="window.print()"
+            >
+
                 IMPRIMIR / SALVAR COMO PDF
+
             </button>
 
+
         </div>
+
 
     </div>
 
     `;
+
 }
 
 
 // ================================================================
-// INICIALIZA
+// INICIALIZAÇÃO
 // ================================================================
 
-try {
+async function iniciar() {
 
-    const payload =
-        window.location.hash.substring(1);
+    try {
 
-    if (!payload) {
-        throw new Error(
-            "Nenhum dado foi informado."
-        );
+
+        // --------------------------------------------------------
+        // PEGA O PAYLOAD DA URL
+        // --------------------------------------------------------
+
+        const payload =
+            window.location.hash
+                .substring(1);
+
+
+        if (!payload) {
+
+            throw new Error(
+                "Nenhum dado foi informado."
+            );
+
+        }
+
+
+        // --------------------------------------------------------
+        // DESCOMPACTA GZIP
+        // --------------------------------------------------------
+
+        const json =
+            await descompactarPayload(
+                payload
+            );
+
+
+        // --------------------------------------------------------
+        // CONVERTE JSON
+        // --------------------------------------------------------
+
+        const dados =
+            JSON.parse(json);
+
+
+        // --------------------------------------------------------
+        // MONTA DANFE
+        // --------------------------------------------------------
+
+        document
+            .getElementById(
+                "conteudo"
+            )
+            .innerHTML =
+            montarDanfe(dados);
+
+
+        // --------------------------------------------------------
+        // TÍTULO DA ABA
+        // --------------------------------------------------------
+
+        if (
+            dados.numero
+        ) {
+
+            document.title =
+                "DANFE " +
+                dados.numero;
+
+        }
+
+
     }
+    catch (erro) {
 
-    const json =
-        base64UrlDecode(payload);
 
-    const dados =
-        JSON.parse(json);
+        console.error(
+            "Erro DANFE:",
+            erro
+        );
 
-    document.getElementById("conteudo")
-        .innerHTML =
-        montarDanfe(dados);
 
-}
-catch (erro) {
+        document
+            .getElementById(
+                "conteudo"
+            )
+            .innerHTML = `
 
-    document.getElementById("conteudo")
-        .innerHTML = `
 
-        <div class="erro">
+            <div class="erro">
 
-            <h2>
-                Não foi possível abrir a DANFE
-            </h2>
 
-            <p>
-                Os dados do documento são inválidos
-                ou estão incompletos.
-            </p>
+                <h2>
 
-        </div>
+                    Não foi possível abrir a DANFE
+
+                </h2>
+
+
+                <p>
+
+                    Os dados do documento são inválidos
+                    ou não puderam ser descompactados.
+
+                </p>
+
+
+                <p>
+
+                    Gere novamente o link da DANFE
+                    pelo chatbot.
+
+                </p>
+
+
+            </div>
+
 
         `;
 
-    console.error(erro);
+    }
+
 }
+
+
+// ================================================================
+// EXECUTA
+// ================================================================
+
+iniciar();
+
 
 </script>
 
+
 </body>
+
 </html>
