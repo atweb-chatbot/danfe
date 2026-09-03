@@ -6,7 +6,18 @@
     <title>DANFE</title>
 </head>
 <body>
-    <h1>DANFE funcionando</h1>
-    <p>Página publicada com sucesso.</p>
+
+    <h1>Teste DANFE</h1>
+
+    <p>Dados recebidos:</p>
+
+    <pre id="resultado"></pre>
+
+    <script>
+        const dados = window.location.hash.substring(1);
+
+        document.getElementById("resultado").textContent = dados;
+    </script>
+
 </body>
 </html>
