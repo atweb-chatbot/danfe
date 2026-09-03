@@ -9,14 +9,41 @@
 
     <h1>Teste DANFE</h1>
 
-    <p>Dados recebidos:</p>
+    <p>Número da NF:</p>
+    <strong id="numero"></strong>
 
-    <pre id="resultado"></pre>
+    <p>Valor:</p>
+    <strong id="valor"></strong>
 
     <script>
-        const dados = window.location.hash.substring(1);
+        function base64UrlDecode(valor) {
+            valor = valor.replace(/-/g, "+").replace(/_/g, "/");
 
-        document.getElementById("resultado").textContent = dados;
+            while (valor.length % 4) {
+                valor += "=";
+            }
+
+            return decodeURIComponent(
+                Array.prototype.map.call(
+                    atob(valor),
+                    c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                ).join("")
+            );
+        }
+
+        try {
+            const payload = window.location.hash.substring(1);
+
+            const json = base64UrlDecode(payload);
+
+            const dados = JSON.parse(json);
+
+            document.getElementById("numero").textContent = dados.numero;
+            document.getElementById("valor").textContent = "R$ " + dados.valor;
+        }
+        catch (erro) {
+            document.body.innerHTML += "<p>Erro ao ler os dados.</p>";
+        }
     </script>
 
 </body>
